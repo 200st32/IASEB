@@ -22,7 +22,7 @@ import time
 
 from .datasets import STVGDataLoader, load_dataset_config
 from .utils import AverageMeter, Summary, convert_to_python_types, rescale_box_from_1000px, calculate_iou_corners
-from .models import FerretSingleSample, ShikraSingleSample, CogVLMSingleSample, Qwen3VLSingleSample
+from .models import FerretSingleSample, ShikraSingleSample, CogVLMSingleSample, Qwen3VLSingleSample, MiMoVLSingleSample
 
 
 # Evaluation function for HC-STVG-1&2, VidVRD, and VidSTG
@@ -131,8 +131,10 @@ def main(args):
         runner = FerretSingleSample()
     elif args.model == 'qwen3vl':
         runner = Qwen3VLSingleSample()
+    elif args.model == 'mimovl':
+        runner = MiMoVLSingleSample()
     else:
-        raise ValueError(f"Model '{args.model}' is not supported. Choose from 'cogvlm', 'shikra', 'ferret', 'qwen3vl'.")
+        raise ValueError(f"Model '{args.model}' is not supported. Choose from 'cogvlm', 'shikra', 'ferret', 'qwen3vl', 'mimovl'.")
         
     mv_iou = AverageMeter('Mean Video IoU', fmt=':.4f', summary_type=Summary.AVERAGE)
     mv_iou03 = AverageMeter('Video IoU@03', fmt=':.4f', summary_type=Summary.AVERAGE)

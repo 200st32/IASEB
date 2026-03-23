@@ -13,6 +13,7 @@ COGVLM_TOKENIZER_PATH = os.environ.get("IASEB_COGVLM_TOKENIZER_PATH", "lmsys/vic
 SHIKRA_MODEL_PATH = os.environ.get("IASEB_SHIKRA_PATH", "shikras/shikra-7b")
 FERRET_MODEL_PATH = os.environ.get("IASEB_FERRET_PATH", "ml-ferret/ferret-7b-v1-3")
 QWEN3VL_MODEL_PATH = os.environ.get("IASEB_QWEN3VL_PATH", "Qwen/Qwen3-VL-8B-Instruct")
+MIMOVL_MODEL_PATH = os.environ.get("IASEB_MIMOVL_PATH", "XiaomiMiMo/MiMo-VL-7B-RL")
 DEVICE = "cuda"
 
 class FerretSingleSample:
@@ -398,6 +399,114 @@ class Qwen3VLSingleSample:
         matches = re.findall(pattern, text)
         for match in matches:
             coords = [int(x) for x in match]
+            box_tensor = torch.tensor(coords, device=self.device).unsqueeze(0)
+            boxes.append(box_tensor)
+        return boxes
+
+
+class MiMoVLSingleSample:
+    """Wrapper for MiMo-VL-7B-RL model.
+
+    MiMo-VL uses Qwen2.5-VL architecture and outputs coordinates
+    in PIXEL space, converted to 0-1000 normalized for the pipeline.
+    """
+
+    def __init__(self, model_path=MIMOVL_MODEL_PATH, device=DEVICE):
+        from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+        try:
+            from qwen_vl_utils import process_vision_info
+        except ImportError:
+            raise ImportError(
+                "qwen-vl-utils not found. Install with: pip install qwen-vl-utils"
+            )
+        self._process_vision_info = process_vision_info
+
+        print(f"Loading MiMo-VL model from {model_path}...")
+        self.device = device
+
+        self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+
+        try:
+            self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+                attn_implementation="flash_attention_2",
+                trust_remote_code=True,
+            ).to(device)
+            print("Using flash_attention_2")
+        except Exception:
+            self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+                model_path,
+                torch_dtype=torch.bfloat16,
+                attn_implementation="sdpa",
+                trust_remote_code=True,
+            ).to(device)
+            print("Using sdpa attention (flash_attention_2 not available)")
+
+        self.model.eval()
+        print("MiMo-VL model loaded successfully!")
+
+    def run_inference(self, image: Image.Image, question: str):
+        img_w, img_h = image.size
+        prompt = f"Locate {question} in this image and provide the bounding box coordinates. /no_think"
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": image},
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+
+        text = self.processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        image_inputs, video_inputs = self._process_vision_info(messages)
+        inputs = self.processor(
+            text=[text],
+            images=image_inputs,
+            videos=video_inputs,
+            padding=True,
+            return_tensors="pt"
+        ).to(self.device)
+
+        with torch.no_grad():
+            generated_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=128,
+                do_sample=False
+            )
+
+        generated_ids_trimmed = [
+            out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+        ]
+        response = self.processor.batch_decode(
+            generated_ids_trimmed,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False
+        )[0].strip()
+
+        boxes = self._parse_boxes(response, img_w, img_h)
+        return response, boxes, prompt, response
+
+    def _parse_boxes(self, text: str, img_w: int, img_h: int):
+        """Extract bounding boxes from model output.
+
+        MiMo-VL outputs coords in PIXEL space, not 0-1000 normalized.
+        We convert them to 0-1000 normalized to match the pipeline.
+        """
+        boxes = []
+        pattern = r'[\[\(](\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)[\]\)]'
+        matches = re.findall(pattern, text)
+        for match in matches:
+            x1, y1, x2, y2 = [int(x) for x in match]
+            x1_norm = x1 / img_w * 1000
+            y1_norm = y1 / img_h * 1000
+            x2_norm = x2 / img_w * 1000
+            y2_norm = y2 / img_h * 1000
+            coords = [x1_norm, y1_norm, x2_norm, y2_norm]
             box_tensor = torch.tensor(coords, device=self.device).unsqueeze(0)
             boxes.append(box_tensor)
         return boxes

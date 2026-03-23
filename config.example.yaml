@@ -1,0 +1,32 @@
+# IASEB Dataset Configuration
+# Copy this file to config.yaml and update paths to your local dataset locations.
+
+hcstvg1:
+  video: /path/to/hcstvg1/videos
+  referral: /path/to/hcstvg1/sentences_test.json
+  freeform: /path/to/hcstvg1/test_proc.json
+
+hcstvg2:
+  video: /path/to/hcstvg2/videos
+  referral: /path/to/hcstvg2/hcstvgv2_sentences_test_gpt_modified.json
+  freeform: /path/to/hcstvg2/HCVG_val_proc.json
+
+vidstg:
+  referral: /path/to/vidstg/vidstg_referral.json
+  freeform: /path/to/vidstg/vidstg_pro_test_final_list.json
+
+vidvrd:
+  referral: /path/to/vidvrd/referral_final_output.json
+  freeform: /path/to/vidvrd/free_form_final_output.json
+
+mevis:
+  video: /path/to/mevis/valid_u/JPEGImages
+  metadata: /path/to/mevis/valid_u/one_object_meta_expressions.json
+  bbox: /path/to/mevis/valid_u/one_obj_bbox_updated_format.json
+  masks: /path/to/mevis/valid_u/mask_dict.json
+
+rvos:
+  video: /path/to/rvos/valid/JPEGImages
+  masks: /path/to/rvos/valid/Annotations
+  metadata: /path/to/rvos/valid/meta_expressions_challenge.json
+  bbox: /path/to/rvos/valid/rvos_bbox_annotations.json

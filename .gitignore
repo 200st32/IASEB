@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Results and data (large files, not tracked)
+results/
+_archive/
+data/
+
+# SLURM output
+*.out
+
+# Model weights and large binaries
+ml_ferret/
+shikra/
+*.pt
+*.bin
+*.safetensors
+
+# Claude Code
+.claude/
+
+# Project-specific large files
+vidstg_filtered_*.json
+vidvrd_filtered_*.json
+
+# Config (user-specific, only example is tracked)
+config.yaml

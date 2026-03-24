@@ -119,6 +119,66 @@ Copy-paste errors found in the submitted paper:
 - **LLaVA T**: paper says 28.1, correct is **31.9** (S value was duplicated into T)
 - **MiniGPT-v2 S**: paper says 44.3, correct is **43.1** (T value was duplicated)
 
+## Paper Figures
+
+### Figure 2 — Taxonomy Sunburst Wheel
+
+- **Script**: `scripts/visualization/sunburst.py`
+- **Output**: `taxonomy.png`
+- **What it shows**: 4 concentric rings — L1: spatial/temporal, L2: entity types (human-human, human-object, etc.), L3: interaction categories (emotional/social, physical, observational), L4: fine-grained types (affective, antagonistic, body motion, etc.)
+- **Dependencies**: Self-contained (colors defined inline, taxonomy hardcoded)
+- **Known issue (reviewer LGNe)**: Labels overflow their wedge segments at CVPR column width. Fix: reduce fonts, abbreviate labels, add legend for outer ring.
+
+### Figure 3 — Benchmark Statistics (3 subfigures)
+
+**(a) Horizontal bar chart — class distribution**
+- **Script**: `scripts/analysis/15_class_distribution.py` → `plot_class_distribution_percent_per_section()` (last function, called at bottom)
+- **Output**: `class_distribution_final.png`
+- **Data**: Hardcoded counts for 3 sections (spatio-temporal: 2 bars, entity: 8 bars, interaction type: 14 bars), colored by taxonomy level
+- **Color dependencies**: Uses `scripts/colors.py` color maps (`NEW_L1_COLOR_MAP`, `NEW_L2_COLOR_MAP`, `NEW_L3_COLOR_MAP`)
+
+**(b) Pie chart — dataset distribution**
+- **Script**: `scripts/visualization/03_dataset_distribution.py`
+- **Output**: `datadistribution_vg12_stgvrd_mevisrvos.png`
+- **Data**: Hardcoded sample counts — HC-STVG-1: 2300, HC-STVG-2: 4000, VidVRD: 1776, VidSTG: 2288, MeViS: 616, Ref-Youtube-VOS: 834
+- **Known issue (reviewer LGNe)**: Inline percentage labels overlap on small slices. Fix: use legend or external labels.
+- **Note**: Script has 3 versions (plotly, matplotlib default, seaborn). The matplotlib version at lines 131-155 produces the paper figure.
+
+**(c) Caption word count histogram**
+- **Script**: DOES NOT EXIST — needs to be created
+- **Data source**: Caption text from dataset JSON files (paths in `config.yaml`)
+
+### Figure 4 — Radar Chart (entity interactions per model)
+
+- **Script**: `scripts/visualization/radar.py`
+- **Output**: `radar_final/entity.png`
+- **Data**: Reads `table1_finalized.csv` (needs to be updated when new model results arrive)
+- **Dependencies**: Standalone (acronym maps defined inline)
+
+### Other Visualization Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/visualization/04_bar_performance.py` | Per-category performance bar/radar charts |
+| `scripts/visualization/05_bboxsize_vs_performance.py` | Bbox size ratio vs performance scatter |
+| `scripts/data_collection/00_bboxsize.py` | Bbox area ratio computation + histogram |
+| `scripts/visualization/make-pred-visualization-figure.py` | Qualitative GT vs pred frame visualization |
+| `scripts/visualize_results.py` | CLI tool for single-result visualization |
+
+### Shared Color/Taxonomy Files
+
+- `scripts/constants.py` — Full taxonomy hierarchies (`ST_HIERARCHY`, `ENTITY_HIERARCHY`) + HSL color generation functions + pre-computed color maps (`ST_COARSE_COLOR_MAP`, `ENTITY_COARSE_COLOR_MAP`)
+- `scripts/colors.py` — 3-level color maps for sunburst/bar chart (`NEW_L1_COLOR_MAP`, `NEW_L2_COLOR_MAP`, `NEW_L3_COLOR_MAP`) + category name lists
+
+### Re-generating Figures After New Results
+
+When MiMo-VL or Qwen3-VL results are finalized:
+1. Update `table1_finalized.csv` (or `table1_latest.csv`) with new model rows
+2. Re-run radar chart: `python scripts/visualization/radar.py`
+3. Re-run sunburst (no data dependency, taxonomy-only): `python scripts/visualization/sunburst.py`
+4. Bar chart data is hardcoded counts — does NOT auto-update from results
+5. Pie chart data is hardcoded counts — does NOT auto-update from results
+
 ## Coordinate Conventions
 
 - Dataset boxes: `[x, y, w, h]` (HC-STVG, VidSTG, VidVRD) or `[xmin, ymin, xmax, ymax]`

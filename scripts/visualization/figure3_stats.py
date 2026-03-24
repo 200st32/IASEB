@@ -221,10 +221,15 @@ def generate_word_count_histogram(outdir, csv_path=None):
         unique = df.drop_duplicates(subset=['caption', 'dataset'])
         word_counts = unique['caption'].str.split().str.len().values
     else:
-        # Fallback: hardcoded approximate distribution
-        np.random.seed(42)
-        word_counts = np.random.normal(11.9, 6.4, 7233).clip(1, 51).astype(int)
-        print("  Warning: CSV not found, using approximate word count distribution")
+        # Fallback: load pre-extracted word counts
+        import json
+        wc_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'caption_word_counts.json')
+        if os.path.exists(wc_path):
+            word_counts = np.array(json.load(open(wc_path)))
+        else:
+            np.random.seed(42)
+            word_counts = np.random.normal(11.9, 6.4, 7233).clip(1, 51).astype(int)
+            print("  Warning: no data source found, using approximate distribution")
 
     fig, ax = plt.subplots(figsize=(SUBFIG_WIDTH * 1.6, SUBFIG_WIDTH * 1.2))
 
